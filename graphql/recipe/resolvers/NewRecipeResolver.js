@@ -274,8 +274,8 @@ let RecipeCorrectionResolver = class RecipeCorrectionResolver {
             ],
             select: 'postfixTitle selectedImage calorie gigl errorIngredients',
         })
-            .skip(100)
-            .limit(20);
+            .skip(20)
+            .limit(10);
         let returnRecipe = await (0, getNotesCompareAndUserCollection_1.default)(userId, userProfileRecipes);
         // console.log(returnRecipe[0].recipeId);
         return returnRecipe;
@@ -326,8 +326,7 @@ let RecipeCorrectionResolver = class RecipeCorrectionResolver {
             ],
             select: 'postfixTitle selectedImage calorie gigl errorIngredients',
         })
-            .skip(80)
-            .limit(20);
+            .limit(10);
         let returnRecipe = await (0, getNotesCompareAndUserCollection_1.default)(userId, userProfileRecipes);
         return returnRecipe;
     }
@@ -383,8 +382,8 @@ let RecipeCorrectionResolver = class RecipeCorrectionResolver {
             ],
             select: 'postfixTitle selectedImage calorie gigl errorIngredients',
         })
-            .skip(60)
-            .limit(20);
+            .skip(10)
+            .limit(10);
         let returnRecipe = await (0, getNotesCompareAndUserCollection_1.default)(userId, userProfileRecipes);
         return returnRecipe;
     }
