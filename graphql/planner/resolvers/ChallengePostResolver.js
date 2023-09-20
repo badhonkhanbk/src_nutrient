@@ -418,7 +418,7 @@ let ChallengePostResolver = class ChallengePostResolver {
         let data = invite.invitedWith.filter(
         //@ts-ignore
         (iw) => String(iw.memberId) === memberId)[0];
-        console.log(data);
+        // console.log(data);
         if (!data) {
             return new AppError_1.default('Invalid invite', 400);
         }
@@ -873,7 +873,7 @@ let ChallengePostResolver = class ChallengePostResolver {
                     memberId: memberId,
                     isActive: true,
                 });
-                console.log('c', challenge);
+                // console.log('c', challenge);
                 if (!challenge) {
                     let inviteChallengeId = await this.checkIfChallengeIsInvitedWithMe(memberId);
                     if (inviteChallengeId) {
@@ -966,7 +966,7 @@ let ChallengePostResolver = class ChallengePostResolver {
         }
         let challengeInfoDate = startDate ? startDate : '';
         let challengeInfo = await this.getChallengeInfo(memberId, viewOnly, challengeInfoDate, challenge._id);
-        console.log('ci', challengeInfo);
+        // console.log('ci', challengeInfo);
         return { challenge: challengeDocs, challengeInfo: challengeInfo };
     }
     async getChallengeGallery(memberId) {
@@ -1120,10 +1120,17 @@ let ChallengePostResolver = class ChallengePostResolver {
         }
         let blendScore = 0;
         if (challengeDocsForRecent.length > 0) {
-            //@ts-ignore
-            let diffTime = Math.abs(today - challenge.startDate);
-            let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-            blendScore = (100 / diffDays) * challengeDocsForRecent.length;
+            if (today < challenge.startDate) {
+                blendScore = 0;
+            }
+            else {
+                //@ts-ignore
+                let diffTime = Math.abs(today - challenge.startDate);
+                let diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                diffDays = diffDays > challenge.days ? challenge.days : diffDays;
+                console.log('diffDays', diffDays);
+                blendScore = (100 / diffDays) * challengeDocsForRecent.length;
+            }
         }
         this.upgradeTopIngredient(challengeId);
         let challengeInfo = {
@@ -1647,9 +1654,57 @@ let ChallengePostResolver = class ChallengePostResolver {
     async gobletOfFire() {
         let cps = await ChallengePost_2.default.find();
         for (let i = 0; i < cps.length; i++) {
-            if (!cps[i].date) {
-                cps[i].date = (0, FormateDate_1.default)(cps[i].assignDate);
-                await cps[i].save();
+            for (let j = 0; j < cps[i].posts.length; j++) {
+                let ingredients = [];
+                for (let k = 0; k < cps[i].posts[j].ingredients.length; k++) {
+                    ingredients[k] = cps[i].posts[j].ingredients[k];
+                    let bi = await blendIngredient_1.default.findOne({
+                        _id: ingredients[k].ingredientId,
+                    })
+                        .select('ingredientName')
+                        .lean();
+                    ingredients[k].originalIngredientName = bi.ingredientName;
+                    ingredients[k].quantityString = String(ingredients[k].selectedPortion.quantity);
+                }
+                // console.log(ingredients);
+                await ChallengePost_2.default.findOneAndUpdate({
+                    _id: cps[i]._id,
+                    //@ts-ignore
+                    'posts._id': cps[i].posts[j]._id,
+                }, {
+                    $set: {
+                        'posts.$.ingredients': ingredients,
+                    },
+                });
+            }
+        }
+        return 'd';
+    }
+    async gobletOfFire2() {
+        let cps = await ChallengePost_2.default.find();
+        for (let i = 0; i < cps.length; i++) {
+            for (let j = 0; j < cps[i].posts.length; j++) {
+                let ingredients = [];
+                for (let k = 0; k < cps[i].posts[j].ingredients.length; k++) {
+                    ingredients[k] = cps[i].posts[j].ingredients[k];
+                    let bi = await blendIngredient_1.default.findOne({
+                        _id: ingredients[k].ingredientId,
+                    })
+                        .select('ingredientName')
+                        .lean();
+                    ingredients[k].originalIngredientName = bi.ingredientName;
+                    ingredients[k].quantityString = String(ingredients[k].selectedPortion.quantity);
+                }
+                // console.log(ingredients);
+                await ChallengePost_2.default.findOneAndUpdate({
+                    _id: cps[i]._id,
+                    //@ts-ignore
+                    'posts._id': cps[i].posts[j]._id,
+                }, {
+                    $set: {
+                        'posts.$.ingredients': ingredients,
+                    },
+                });
             }
         }
         return 'd';

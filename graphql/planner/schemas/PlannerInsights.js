@@ -13,40 +13,36 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const type_graphql_1 = require("type-graphql");
-const SelectedPortion_1 = __importDefault(require("./SelectedPortion"));
-const ReturnPortion_1 = __importDefault(require("./ReturnPortion"));
-const BlendIngredientData_1 = __importDefault(require("../../blendIngredientsdata/schemas/BlendIngredientData"));
-let IngredientData = class IngredientData {
+const CategoryPercentage_1 = __importDefault(require("./PlanSchema/CategoryPercentage"));
+const TopIngredient_1 = __importDefault(require("./PlanSchema/TopIngredient"));
+const MacroMakeup_1 = __importDefault(require("./PlanSchema/MacroMakeup"));
+let PlannerInsights = class PlannerInsights {
 };
 __decorate([
-    (0, type_graphql_1.Field)((type) => BlendIngredientData_1.default),
-    __metadata("design:type", BlendIngredientData_1.default)
-], IngredientData.prototype, "ingredientId", void 0);
+    (0, type_graphql_1.Field)((type) => [TopIngredient_1.default], { nullable: true }),
+    __metadata("design:type", Array)
+], PlannerInsights.prototype, "topIngredients", void 0);
 __decorate([
-    (0, type_graphql_1.Field)({ nullable: true }),
-    __metadata("design:type", String)
-], IngredientData.prototype, "originalIngredientName", void 0);
+    (0, type_graphql_1.Field)((type) => [CategoryPercentage_1.default], { nullable: true }),
+    __metadata("design:type", Array)
+], PlannerInsights.prototype, "recipeCategoriesPercentage", void 0);
 __decorate([
-    (0, type_graphql_1.Field)({ nullable: true }),
-    __metadata("design:type", String)
-], IngredientData.prototype, "quantityString", void 0);
+    (0, type_graphql_1.Field)((type) => MacroMakeup_1.default, { nullable: true }),
+    __metadata("design:type", MacroMakeup_1.default)
+], PlannerInsights.prototype, "macroMakeup", void 0);
 __decorate([
     (0, type_graphql_1.Field)({ nullable: true }),
     __metadata("design:type", Number)
-], IngredientData.prototype, "weightInGram", void 0);
+], PlannerInsights.prototype, "calorie", void 0);
 __decorate([
     (0, type_graphql_1.Field)({ nullable: true }),
-    __metadata("design:type", SelectedPortion_1.default)
-], IngredientData.prototype, "selectedPortion", void 0);
-__decorate([
-    (0, type_graphql_1.Field)((type) => [ReturnPortion_1.default], { nullable: true }),
-    __metadata("design:type", Array)
-], IngredientData.prototype, "portions", void 0);
+    __metadata("design:type", Number)
+], PlannerInsights.prototype, "netCarbs", void 0);
 __decorate([
     (0, type_graphql_1.Field)({ nullable: true }),
-    __metadata("design:type", String)
-], IngredientData.prototype, "comment", void 0);
-IngredientData = __decorate([
+    __metadata("design:type", Number)
+], PlannerInsights.prototype, "rxScore", void 0);
+PlannerInsights = __decorate([
     (0, type_graphql_1.ObjectType)()
-], IngredientData);
-exports.default = IngredientData;
+], PlannerInsights);
+exports.default = PlannerInsights;

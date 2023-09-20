@@ -31,6 +31,7 @@ const UserRecipeProfile_1 = __importDefault(require("../../../models/UserRecipeP
 const mongoose_1 = __importDefault(require("mongoose"));
 const EditedVersion_1 = __importDefault(require("../schemas/EditedVersion"));
 const ProfileRecipeDesc_1 = __importDefault(require("../schemas/ProfileRecipeDesc"));
+const updateServingSize_1 = __importDefault(require("./util/updateServingSize"));
 let RecipeVersionResolver = class RecipeVersionResolver {
     /**
      * Edits a version of a recipe.
@@ -85,6 +86,8 @@ let RecipeVersionResolver = class RecipeVersionResolver {
                 }
                 modifiedIngredients.push({
                     ingredientId: ingredients[i].ingredientId,
+                    originalIngredientName: ingredients[i].originalIngredientName,
+                    quantityString: ingredients[i].quantityString,
                     portions: portions,
                     selectedPortion: selectedPortion,
                     weightInGram: ingredients[i].weightInGram,
@@ -524,7 +527,8 @@ let RecipeVersionResolver = class RecipeVersionResolver {
                 path: 'ingredients.ingredientId',
                 model: 'BlendIngredient',
             },
-        });
+        })
+            .lean();
         let collectionRecipes = [];
         let memberCollections = await memberModel_1.default.find({ _id: userId })
             .populate({
@@ -754,7 +758,8 @@ let RecipeVersionResolver = class RecipeVersionResolver {
                 model: 'BlendIngredient',
             },
             select: '-mineral -energy -vitamin',
-        });
+        })
+            .lean();
         let collectionRecipes = [];
         let memberCollections = await memberModel_1.default.find({ _id: userId })
             .populate({
@@ -804,7 +809,7 @@ let RecipeVersionResolver = class RecipeVersionResolver {
         }
         return {
             //@ts-ignore
-            ...userProfileRecipe._doc,
+            ...userProfileRecipe,
             notes: userNotes.length,
             addedToCompare: addedToCompare,
             userCollections: collectionData,
@@ -812,19 +817,23 @@ let RecipeVersionResolver = class RecipeVersionResolver {
         };
     }
     async tintintin() {
-        let rvs = await RecipeVersionModel_1.default.find();
-        for (let i = 0; i < rvs.length; i++) {
-            let ingredients = rvs[i].ingredients;
-            for (let j = 0; j < ingredients.length; j++) {
-                ingredients[j].comment = '';
-            }
-            await RecipeVersionModel_1.default.findOneAndUpdate({
-                _id: rvs[i]._id,
-            }, {
-                ingredients: ingredients,
-            });
-        }
-        return 'done';
+        // let rvs = await RecipeVersionModel.find();
+        // for (let i = 0; i < rvs.length; i++) {
+        //   let ingredients: any[] = rvs[i].ingredients;
+        //   for (let j = 0; j < ingredients.length; j++) {
+        //     ingredients[j].comment = '';
+        //   }
+        //   await RecipeVersionModel.findOneAndUpdate(
+        //     {
+        //       _id: rvs[i]._id,
+        //     },
+        //     {
+        //       ingredients: ingredients,
+        //     }
+        //   );
+        // }
+        // return 'done';
+        return await (0, updateServingSize_1.default)();
     }
 };
 __decorate([

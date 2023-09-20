@@ -19,6 +19,18 @@ __decorate([
 __decorate([
     (0, type_graphql_1.Field)({ nullable: true }),
     __metadata("design:type", String)
+], Processed.prototype, "name", void 0);
+__decorate([
+    (0, type_graphql_1.Field)({ nullable: true }),
+    __metadata("design:type", String)
+], Processed.prototype, "originalIngredientName", void 0);
+__decorate([
+    (0, type_graphql_1.Field)({ nullable: true }),
+    __metadata("design:type", String)
+], Processed.prototype, "quantityString", void 0);
+__decorate([
+    (0, type_graphql_1.Field)({ nullable: true }),
+    __metadata("design:type", String)
 ], Processed.prototype, "selectedPortionName", void 0);
 __decorate([
     (0, type_graphql_1.Field)({ nullable: true }),

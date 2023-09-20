@@ -24,7 +24,7 @@ const memberModel_1 = __importDefault(require("../../../models/memberModel"));
 const userCollection_1 = __importDefault(require("../../../models/userCollection"));
 const recipeModel_1 = __importDefault(require("../../../models/recipeModel"));
 const UserRecipeProfile_1 = __importDefault(require("../../../models/UserRecipeProfile"));
-const GroceryList_1 = __importDefault(require("../../../models/GroceryList"));
+// import GroceryListModel from '../../../models/GroceryList';
 const Planner_2 = __importDefault(require("../schemas/Planner"));
 const PlannerRecipe_1 = __importDefault(require("../../planner/schemas/PlannerRecipe"));
 const PlannerWithRecipes_1 = __importDefault(require("../schemas/PlannerWithRecipes"));
@@ -36,11 +36,14 @@ const getIngredientStats_1 = __importDefault(require("./utils/getIngredientStats
 const PlannersIngredientAndCategoryPercentage_1 = __importDefault(require("../schemas/PlannersIngredientAndCategoryPercentage"));
 const getNotesCompareAndUserCollectionsForPlanner_1 = __importDefault(require("../../recipe/resolvers/util/getNotesCompareAndUserCollectionsForPlanner"));
 const RecipeVersionModel_1 = __importDefault(require("../../../models/RecipeVersionModel"));
-const checkGroceryList_1 = __importDefault(require("../../grocery/util/checkGroceryList"));
+const PlannerInsights_1 = __importDefault(require("../schemas/PlannerInsights"));
+const addToGroceryFromRecipe_1 = __importDefault(require("./utils/addToGroceryFromRecipe"));
+const getSearchedBlendNutrition_1 = __importDefault(require("../../blendIngredientsdata/resolvers/util/getSearchedBlendNutrition"));
+const getGlAndNetCarbs2_1 = __importDefault(require("../../blendIngredientsdata/resolvers/util/getGlAndNetCarbs2"));
 var MergeOrReplace;
 (function (MergeOrReplace) {
     MergeOrReplace["MERGE"] = "MERGE";
-    MergeOrReplace["REMOVE"] = "REMOVE";
+    MergeOrReplace["REPLACE"] = "REPLACE";
 })(MergeOrReplace || (MergeOrReplace = {}));
 (0, type_graphql_1.registerEnumType)(MergeOrReplace, {
     name: 'mergerOrRemove',
@@ -55,7 +58,7 @@ let PlannerResolver = class PlannerResolver {
      */
     async createPlanner(data) {
         let isoDate = new Date(data.assignDate).toISOString();
-        console.log(isoDate);
+        // console.log(isoDate);
         let planner = await Planner_1.default.findOne({
             assignDate: isoDate,
             memberId: data.memberId,
@@ -146,10 +149,16 @@ let PlannerResolver = class PlannerResolver {
     async getPlannerByDates(startDate, endDate, userId) {
         let startDateISO = new Date(startDate);
         let endDateISO = new Date(endDate);
+        let macroMakeUp = {
+            carbs: 0,
+            protein: 0,
+            fats: 0,
+        };
         let days = await this.getDifferenceInDays(startDateISO, endDateISO);
         let planners = [];
         let recipeCategories = [];
         let ingredients = [];
+        let ingredientInfo = [];
         let tempDay = startDateISO;
         for (let i = 0; i <= Number(days); i++) {
             let planner = await Planner_1.default.findOne({
@@ -198,7 +207,7 @@ let PlannerResolver = class PlannerResolver {
                     },
                 })
                     .lean();
-                // console.log(userProfileRecipes[0]);
+                // console.log(userProfileRecipes.length);
                 let returnRecipe = await (0, getNotesCompareAndUserCollectionsForPlanner_1.default)(userId, userProfileRecipes);
                 planner.ProfileRecipes = returnRecipe;
                 planners.push(planner);
@@ -211,9 +220,11 @@ let PlannerResolver = class PlannerResolver {
                             //@ts-ignore
                             name: userProfileRecipes[j].recipeId.recipeBlendCategory.name,
                         });
+                        // console.log(userProfileRecipes[j]._id);
                         for (let k = 0; 
                         //@ts-ignore
                         k < userProfileRecipes[j].defaultVersion.ingredients.length; k++) {
+                            // console.log(k);
                             ingredients.push({
                                 //@ts-ignore
                                 _id: userProfileRecipes[j].defaultVersion.ingredients[k]
@@ -226,6 +237,37 @@ let PlannerResolver = class PlannerResolver {
                                 userProfileRecipes[j].defaultVersion.ingredients[k]
                                     .ingredientId.featuredImage,
                             });
+                            // console.log(k);
+                            ingredientInfo.push({
+                                ingredientId: String(userProfileRecipes[j].defaultVersion.ingredients[k]
+                                    .ingredientId._id),
+                                value: userProfileRecipes[j].defaultVersion.ingredients[k]
+                                    .weightInGram,
+                            });
+                        }
+                        let protein = userProfileRecipes[j].defaultVersion.energy.filter((item) => String(item.blendNutrientRefference) ===
+                            '620b4607b82695d67f28e196')[0];
+                        if (!protein) {
+                            macroMakeUp.protein += 0;
+                        }
+                        else {
+                            macroMakeUp.protein += protein.value;
+                        }
+                        let fats = userProfileRecipes[j].defaultVersion.energy.filter((item) => String(item.blendNutrientRefference) ===
+                            '620b4607b82695d67f28e199')[0];
+                        if (!fats) {
+                            macroMakeUp.fats += 0;
+                        }
+                        else {
+                            macroMakeUp.fats += fats.value;
+                        }
+                        let carbs = userProfileRecipes[j].defaultVersion.energy.filter((item) => String(item.blendNutrientRefference) ===
+                            '620b4608b82695d67f28e19c')[0];
+                        if (!carbs) {
+                            macroMakeUp.carbs += 0;
+                        }
+                        else {
+                            macroMakeUp.carbs += carbs.value;
                         }
                     }
                 }
@@ -243,11 +285,241 @@ let PlannerResolver = class PlannerResolver {
         }
         let categoryPercentages = await (0, getRecipeCategoryPercentage_1.default)(recipeCategories);
         let ingredientsStats = await (0, getIngredientStats_1.default)(ingredients);
+        if (macroMakeUp.protein !== 0) {
+            macroMakeUp.protein = macroMakeUp.protein / days;
+        }
+        if (macroMakeUp.fats !== 0) {
+            macroMakeUp.fats = macroMakeUp.fats / days;
+        }
+        if (macroMakeUp.carbs !== 0) {
+            macroMakeUp.carbs = macroMakeUp.carbs / days;
+        }
+        // console.log(ingredientInfo);
+        // console.log(2);
+        let res2 = await (0, getGlAndNetCarbs2_1.default)(ingredientInfo);
+        // console.log(2);
+        let res = await (0, getSearchedBlendNutrition_1.default)(ingredientInfo, [
+            '620b4606b82695d67f28e193',
+        ]);
         // console.log(planners);
         return {
             planners,
             topIngredients: ingredientsStats,
             recipeCategoriesPercentage: categoryPercentages,
+            macroMakeup: macroMakeUp,
+            calorie: res[0].value,
+            netCarbs: res2.netCarbs,
+            rxScore: 0,
+        };
+    }
+    async getPlannerInsights(userId, recipeIds, numberOfDays) {
+        let macroMakeUp = {
+            carbs: 0,
+            protein: 0,
+            fats: 0,
+        };
+        let user = await memberModel_1.default.findOne({ _id: userId }).select('_id');
+        if (!user) {
+            return new AppError_1.default('user not Found', 404);
+        }
+        // let macroInfo = user.macroInfo.map((mi) => {
+        //   return {
+        //     //@ts-ignore
+        //     nutrientName: mi.blendNutrientId.nutrientName,
+        //     percentage: mi.percentage,
+        //   };
+        // });
+        let recipeCategories = [];
+        let ingredients = [];
+        let ingredientInfo = [];
+        const recipeCounts = {};
+        recipeIds.forEach(function (recipeId) {
+            recipeCounts[recipeId.toString()] =
+                (recipeCounts[recipeId.toString()] || 0) + 1;
+        });
+        console.log(recipeCounts);
+        let uniqueIds = Object.keys(recipeCounts);
+        for (let i = 0; i < uniqueIds.length; i++) {
+            let userProfileRecipe = await UserRecipeProfile_1.default.findOne({
+                userId: userId,
+                recipeId: uniqueIds[i],
+            })
+                .populate({
+                path: 'recipeId',
+                model: 'RecipeModel',
+                populate: [
+                    {
+                        path: 'recipeBlendCategory',
+                        model: 'RecipeCategory',
+                        select: 'name',
+                    },
+                ],
+            })
+                .populate({
+                path: 'defaultVersion',
+                model: 'RecipeVersion',
+                populate: {
+                    path: 'ingredients.ingredientId',
+                    model: 'BlendIngredient',
+                    select: 'ingredientName selectedImage featuredImage',
+                },
+            })
+                .select('recipeId defaultVersion')
+                .lean();
+            if (!userProfileRecipe) {
+                continue;
+            }
+            let recipeCount = recipeCounts[uniqueIds[i]];
+            for (let recipeCountS = 0; recipeCountS < recipeCount; recipeCountS++) {
+                recipeCategories.push({
+                    //@ts-ignore
+                    _id: userProfileRecipe.recipeId.recipeBlendCategory._id,
+                    //@ts-ignore
+                    name: userProfileRecipe.recipeId.recipeBlendCategory.name,
+                });
+            }
+            for (let k = 0; 
+            //@ts-ignore
+            k < userProfileRecipe.defaultVersion.ingredients.length; k++) {
+                // let findIndex = ingredients.findIndex((ingredient) => {
+                //   if (
+                //     String(ingredient._id) ===
+                //     String(
+                //       userProfileRecipe.defaultVersion.ingredients[k].ingredientId._id
+                //     )
+                //   ) {
+                //     return true;
+                //   } else {
+                //     false;
+                //   }
+                // });
+                // console.log('-----------------');
+                // console.log(ingredients);
+                // console.log(
+                //   userProfileRecipe.defaultVersion.ingredients[k].ingredientId._id
+                // );
+                // console.log('fi', findIndex);
+                // console.log('------------------');
+                // if (findIndex === -1) {
+                //   ingredients.push({
+                //     //@ts-ignore
+                //     _id: userProfileRecipe.defaultVersion.ingredients[k].ingredientId
+                //       ._id,
+                //     //@ts-ignore
+                //     name: userProfileRecipe.defaultVersion.ingredients[k].ingredientId
+                //       .ingredientName,
+                //     value: userProfileRecipe.defaultVersion.ingredients[k].weightInGram,
+                //     featuredImage:
+                //       //@ts-ignore
+                //       userProfileRecipe.defaultVersion.ingredients[k].ingredientId
+                //         .featuredImage,
+                //   });
+                // } else {
+                //   ingredients[findIndex].value =
+                //     ingredients[findIndex].value +
+                //     userProfileRecipe.defaultVersion.ingredients[k].weightInGram;
+                // }
+                for (let recipeCountS = 0; recipeCountS < recipeCount; recipeCountS++) {
+                    // ingredients.push({
+                    //   //@ts-ignore
+                    //   _id: userProfileRecipe.defaultVersion.ingredients[k].ingredientId
+                    //     ._id,
+                    //   //@ts-ignore
+                    //   name: userProfileRecipe.defaultVersion.ingredients[k].ingredientId
+                    //     .ingredientName,
+                    //   value: userProfileRecipe.defaultVersion.ingredients[k].weightInGram,
+                    //   featuredImage:
+                    //     //@ts-ignore
+                    //     userProfileRecipe.defaultVersion.ingredients[k].ingredientId
+                    //       .featuredImage,
+                    // });
+                    // console.log(ingredients);
+                    let findIndex = ingredients.findIndex((ingredient) => String(userProfileRecipe.defaultVersion.ingredients[k].ingredientId._id) === String(ingredient._id));
+                    console.log('fi', findIndex);
+                    if (findIndex === -1) {
+                        ingredients.push({
+                            //@ts-ignore
+                            _id: userProfileRecipe.defaultVersion.ingredients[k].ingredientId
+                                ._id,
+                            //@ts-ignore
+                            name: userProfileRecipe.defaultVersion.ingredients[k].ingredientId
+                                .ingredientName,
+                            value: userProfileRecipe.defaultVersion.ingredients[k].weightInGram,
+                            featuredImage: 
+                            //@ts-ignore
+                            userProfileRecipe.defaultVersion.ingredients[k].ingredientId
+                                .featuredImage,
+                        });
+                        ingredientInfo.push({
+                            ingredientId: String(userProfileRecipe.defaultVersion.ingredients[k].ingredientId._id),
+                            value: userProfileRecipe.defaultVersion.ingredients[k].weightInGram,
+                        });
+                    }
+                    else {
+                        ingredients[findIndex].value =
+                            ingredients[findIndex].value +
+                                userProfileRecipe.defaultVersion.ingredients[k].weightInGram;
+                        ingredientInfo[findIndex].value =
+                            ingredientInfo[findIndex].value +
+                                userProfileRecipe.defaultVersion.ingredients[k].weightInGram;
+                    }
+                    // ingredientInfo.push({
+                    //   ingredientId: String(
+                    //     userProfileRecipe.defaultVersion.ingredients[k].ingredientId._id
+                    //   ),
+                    //   value: userProfileRecipe.defaultVersion.ingredients[k].weightInGram,
+                    // });
+                }
+            }
+            let protein = userProfileRecipe.defaultVersion.energy.filter((item) => String(item.blendNutrientRefference) === '620b4607b82695d67f28e196')[0];
+            if (!protein) {
+                macroMakeUp.protein += 0;
+            }
+            else {
+                macroMakeUp.protein += protein.value * recipeCount;
+            }
+            let fats = userProfileRecipe.defaultVersion.energy.filter((item) => String(item.blendNutrientRefference) === '620b4607b82695d67f28e199')[0];
+            if (!fats) {
+                macroMakeUp.fats += 0;
+            }
+            else {
+                macroMakeUp.fats += fats.value * recipeCount;
+            }
+            let carbs = userProfileRecipe.defaultVersion.energy.filter((item) => String(item.blendNutrientRefference) === '620b4608b82695d67f28e19c')[0];
+            if (!carbs) {
+                macroMakeUp.carbs += 0;
+            }
+            else {
+                macroMakeUp.carbs += carbs.value * recipeCount;
+            }
+        }
+        // console.log('ingredients', ingredients);
+        if (macroMakeUp.protein !== 0) {
+            macroMakeUp.protein = macroMakeUp.protein / numberOfDays;
+        }
+        if (macroMakeUp.fats !== 0) {
+            macroMakeUp.fats = macroMakeUp.fats / numberOfDays;
+        }
+        if (macroMakeUp.carbs !== 0) {
+            macroMakeUp.carbs = macroMakeUp.carbs / numberOfDays;
+        }
+        let categoryPercentages = await (0, getRecipeCategoryPercentage_1.default)(recipeCategories);
+        let ingredientsStats = await (0, getIngredientStats_1.default)(ingredients);
+        // console.log(2);
+        let res2 = await (0, getGlAndNetCarbs2_1.default)(ingredientInfo);
+        // console.log(2);
+        let res = await (0, getSearchedBlendNutrition_1.default)(ingredientInfo, [
+            '620b4606b82695d67f28e193',
+        ]);
+        // console.log(res);
+        // console.log(res2);
+        return {
+            topIngredients: ingredientsStats,
+            recipeCategoriesPercentage: categoryPercentages,
+            macroMakeup: macroMakeUp,
+            calorie: res[0].value,
+            netCarbs: res2.netCarbs,
+            rxScore: 0,
         };
     }
     /**
@@ -546,50 +818,7 @@ let PlannerResolver = class PlannerResolver {
      * @return {Promise<string>} A string indicating the result of the operation.
      */
     async addToGroceryFromPlanner(memberId, recipeId) {
-        let recipe = await UserRecipeProfile_1.default.findOne({
-            recipeId: recipeId,
-            userId: memberId,
-        }).populate({
-            path: 'defaultVersion',
-            model: 'RecipeVersion',
-            populate: {
-                path: 'ingredients.ingredientId',
-                model: 'BlendIngredient',
-            },
-        });
-        let member = await memberModel_1.default.findOne({ _id: memberId });
-        if (!recipe || !member) {
-            return new AppError_1.default('Recipe or member not found', 404);
-        }
-        let groceryList = await GroceryList_1.default.findOne({
-            memberId: memberId,
-        });
-        if (!groceryList) {
-            groceryList = await GroceryList_1.default.create({
-                memberId: memberId,
-                list: [],
-            });
-        }
-        let data = {};
-        data.memberId = memberId;
-        data.ingredients = [];
-        for (let i = 0; i < recipe.defaultVersion.ingredients.length; i++) {
-            if (!groceryList.list.filter(
-            //@ts-ignore
-            (item) => String(item.ingredientId) ===
-                String(recipe.defaultVersion.ingredients[i].ingredientId))[0]) {
-                data.ingredients.push({
-                    ingredientId: String(recipe.defaultVersion.ingredients[i].ingredientId._id),
-                    selectedPortion: recipe.defaultVersion.ingredients[i].selectedPortion.name,
-                    quantity: recipe.defaultVersion.ingredients[i].selectedPortion.quantity,
-                });
-            }
-        }
-        if (data.ingredients.length === 0) {
-            return 'done';
-        }
-        console.log(data.ingredients[0].ingredientId);
-        await (0, checkGroceryList_1.default)(data, GroceryList_1.default, groceryList);
+        await (0, addToGroceryFromRecipe_1.default)(recipeId, memberId);
         return 'successfully added to grocery';
     }
     /**
@@ -648,7 +877,6 @@ let PlannerResolver = class PlannerResolver {
                 });
             }
             else {
-                console.log('hello');
                 await Planner_1.default.create({
                     memberId: memberId,
                     assignDate: tempDate,
@@ -739,6 +967,22 @@ let PlannerResolver = class PlannerResolver {
         });
         return 'done';
     }
+    async n() {
+        let planners = await Planner_1.default.find();
+        for (let i = 0; i < planners.length; i++) {
+            let otherPlanners = await Planner_1.default.find({
+                memberId: planners[i].memberId,
+                formatedDate: planners[i].formatedDate,
+                _id: { $ne: planners[i]._id },
+            }).select('_id');
+            let ids = otherPlanners.map((op) => op._id);
+            planners.length = planners.length - ids.length;
+            await Planner_1.default.deleteMany({
+                _id: { $in: ids },
+            });
+        }
+        return 'done';
+    }
 };
 __decorate([
     (0, type_graphql_1.Mutation)(() => Planner_2.default)
@@ -803,6 +1047,15 @@ __decorate([
     __metadata("design:paramtypes", [String, String, String]),
     __metadata("design:returntype", Promise)
 ], PlannerResolver.prototype, "getPlannerByDates", null);
+__decorate([
+    (0, type_graphql_1.Query)(() => PlannerInsights_1.default),
+    __param(0, (0, type_graphql_1.Arg)('userId')),
+    __param(1, (0, type_graphql_1.Arg)('recipeIds', (type) => [String])),
+    __param(2, (0, type_graphql_1.Arg)('numberOfDays')),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Array, Number]),
+    __metadata("design:returntype", Promise)
+], PlannerResolver.prototype, "getPlannerInsights", null);
 __decorate([
     (0, type_graphql_1.Mutation)(() => String)
     /**
@@ -918,6 +1171,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], PlannerResolver.prototype, "fixV", null);
+__decorate([
+    (0, type_graphql_1.Mutation)(() => String),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], PlannerResolver.prototype, "n", null);
 PlannerResolver = __decorate([
     (0, type_graphql_1.Resolver)()
 ], PlannerResolver);

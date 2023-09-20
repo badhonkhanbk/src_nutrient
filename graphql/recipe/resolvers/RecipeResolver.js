@@ -45,14 +45,28 @@ const getNotesCompareAndUserCollection_1 = __importDefault(require("./util/getNo
 const QANotFound_1 = __importDefault(require("../../../models/QANotFound"));
 const brand_1 = __importDefault(require("../../../models/brand"));
 const slugify_1 = __importDefault(require("slugify"));
-const Plan_1 = __importDefault(require("../../../models/Plan"));
-const Planner_1 = __importDefault(require("../../../models/Planner"));
-const planCollection_1 = __importDefault(require("../../../models/planCollection"));
 const temporaryCompareCollection_1 = __importDefault(require("../../../models/temporaryCompareCollection"));
 const changeCompare_1 = __importDefault(require("../../member/resolvers/util/changeCompare"));
 const GetASingleRecipe_1 = __importDefault(require("./util/GetASingleRecipe"));
 const ProfileRecipeDesc_1 = __importDefault(require("../schemas/ProfileRecipeDesc"));
 const Collection_1 = __importDefault(require("../../member/schemas/Collection"));
+const planCollection_1 = __importDefault(require("../../../models/planCollection"));
+const challenge_1 = __importDefault(require("../../../models/challenge"));
+const ChallengePost_1 = __importDefault(require("../../../models/ChallengePost"));
+const InviteForChallenge_1 = __importDefault(require("../../../models/InviteForChallenge"));
+const planComment_1 = __importDefault(require("../../../models/planComment"));
+const Planner_1 = __importDefault(require("../../../models/Planner"));
+const PlanRating_1 = __importDefault(require("../../../models/PlanRating"));
+const Plan_1 = __importDefault(require("../../../models/Plan"));
+const planShare_1 = __importDefault(require("../../../models/planShare"));
+const collectionShare_1 = __importDefault(require("../../../models/collectionShare"));
+const shareChallengeGlobal_1 = __importDefault(require("../../../models/shareChallengeGlobal"));
+const share_1 = __importDefault(require("../../../models/share"));
+const comment_1 = __importDefault(require("../../../models/comment"));
+const adminCollection_1 = __importDefault(require("../../../models/adminCollection"));
+const comment_2 = __importDefault(require("../../../models/comment"));
+const MainRecipesWithPagination_1 = __importDefault(require("../schemas/MainRecipesWithPagination"));
+const getAllAdminRecipes_1 = __importDefault(require("./util/getAllAdminRecipes"));
 let RecipeResolver = class RecipeResolver {
     /**
      * Asynchronously executes the tya function.
@@ -609,6 +623,7 @@ let RecipeResolver = class RecipeResolver {
             },
             select: 'postfixTitle selectedImage calorie gigl errorIngredients',
         })
+            .lean()
             .limit(limit)
             .skip(limit * (page - 1));
         let returnRecipe = await (0, getNotesCompareAndUserCollection_1.default)(userId, userProfileRecipes);
@@ -894,50 +909,55 @@ let RecipeResolver = class RecipeResolver {
         }
         return 'recipe has been removed From your collection';
     }
-    async addRecipeFromAdmin(data) {
-        let newData = data;
-        newData.foodCategories = [];
-        for (let i = 0; i < newData.ingredients.length; i++) {
-            newData.ingredients[i].portions = [];
-            let ingredient = await blendIngredient_1.default.findOne({
-                _id: newData.ingredients[i].ingredientId,
-            });
-            let index = 0;
-            let selectedPortionIndex = 0;
-            for (let j = 0; j < ingredient.portions.length; j++) {
-                if (ingredient.portions[j].default === true) {
-                    index = j;
-                    console.log(index);
-                    break;
-                }
-            }
-            for (let k = 0; k < ingredient.portions.length; k++) {
-                if (ingredient.portions[k].measurement ===
-                    newData.ingredients[i].selectedPortionName) {
-                    selectedPortionIndex = k;
-                }
-                let portion = {
-                    name: ingredient.portions[k].measurement,
-                    quantity: newData.ingredients[i].weightInGram /
-                        +ingredient.portions[k].meausermentWeight,
-                    default: ingredient.portions[k].default,
-                    gram: ingredient.portions[k].meausermentWeight,
-                };
-                newData.ingredients[i].portions.push(portion);
-            }
-            newData.ingredients[i].selectedPortion = {
-                name: ingredient.portions[selectedPortionIndex].measurement,
-                quantity: newData.ingredients[i].weightInGram /
-                    +ingredient.portions[selectedPortionIndex].meausermentWeight,
-                gram: ingredient.portions[selectedPortionIndex].meausermentWeight,
-            };
-            newData.foodCategories.push(ingredient.category);
-        }
-        newData.foodCategories = [...new Set(newData.foodCategories)];
-        newData.global = false;
-        let recipe = await recipeModel_1.default.create(newData);
-        return 'recipe added successfully';
-    }
+    // @Mutation((type) => String) //:NOT USABLE
+    // async addRecipeFromAdmin(@Arg('data') data: CreateRecipe) {
+    //   let newData: any = data;
+    //   newData.foodCategories = [];
+    //   for (let i = 0; i < newData.ingredients.length; i++) {
+    //     newData.ingredients[i].portions = [];
+    //     let ingredient = await BlendIngredientModel.findOne({
+    //       _id: newData.ingredients[i].ingredientId,
+    //     });
+    //     let index = 0;
+    //     let selectedPortionIndex = 0;
+    //     for (let j = 0; j < ingredient.portions.length; j++) {
+    //       if (ingredient.portions[j].default === true) {
+    //         index = j;
+    //         console.log(index);
+    //         break;
+    //       }
+    //     }
+    //     for (let k = 0; k < ingredient.portions.length; k++) {
+    //       if (
+    //         ingredient.portions[k].measurement ===
+    //         newData.ingredients[i].selectedPortionName
+    //       ) {
+    //         selectedPortionIndex = k;
+    //       }
+    //       let portion = {
+    //         name: ingredient.portions[k].measurement,
+    //         quantity:
+    //           newData.ingredients[i].weightInGram /
+    //           +ingredient.portions[k].meausermentWeight,
+    //         default: ingredient.portions[k].default,
+    //         gram: ingredient.portions[k].meausermentWeight,
+    //       };
+    //       newData.ingredients[i].portions.push(portion);
+    //     }
+    //     newData.ingredients[i].selectedPortion = {
+    //       name: ingredient.portions[selectedPortionIndex].measurement,
+    //       quantity:
+    //         newData.ingredients[i].weightInGram /
+    //         +ingredient.portions[selectedPortionIndex].meausermentWeight,
+    //       gram: ingredient.portions[selectedPortionIndex].meausermentWeight,
+    //     };
+    //     newData.foodCategories.push(ingredient.category);
+    //   }
+    //   newData.foodCategories = [...new Set(newData.foodCategories)];
+    //   newData.global = false;
+    //   let recipe = await RecipeModel.create(newData);
+    //   return 'recipe added successfully';
+    // }
     /**
      * Adds a recipe from a user.
      *
@@ -1090,7 +1110,7 @@ let RecipeResolver = class RecipeResolver {
         let recipeVersion = await RecipeVersionModel_1.default.create({
             recipeId: userRecipe._id,
             postfixTitle: data.name,
-            selectedImage: data.image[0].image,
+            selectedImage: data.image[0] ? data.image[0].image : '',
             servingSize: newData.servingSize,
             description: newData.description,
             ingredients: newData.ingredients,
@@ -1179,16 +1199,15 @@ let RecipeResolver = class RecipeResolver {
         return await (0, GetASingleRecipe_1.default)(String(returnUserRecipe._id), String(data.userId), null);
     }
     async janoyar() {
-        let userRecipes = await UserRecipeProfile_1.default.find();
-        for (let i = 0; i < userRecipes.length; i++) {
-            if (!userRecipes[i].personalRating) {
-                await UserRecipeProfile_1.default.findOneAndUpdate({
-                    _id: userRecipes[i]._id,
-                }, {
-                    personalRating: 0,
-                });
-            }
-        }
+        await recipeModel_1.default.updateMany({}, {
+            commentsCount: 0,
+            numberOfRating: 0,
+            totalRating: 0,
+            totalViews: 0,
+            averageRating: 0,
+        });
+        await planComment_1.default.deleteMany();
+        await comment_2.default.deleteMany();
         return 'done';
     }
     // @Mutation((type) => String)
@@ -1420,6 +1439,7 @@ let RecipeResolver = class RecipeResolver {
             },
             select: 'postfixTitle selectedImage calorie gigl errorIngredients',
         })
+            .lean()
             .limit(limit)
             .skip(limit * (page - 1));
         let returnRecipe = await (0, getNotesCompareAndUserCollection_1.default)(userId, userProfileRecipes);
@@ -1462,7 +1482,7 @@ let RecipeResolver = class RecipeResolver {
             }
             return acc;
         }, []);
-        console.log(modifiedRecipe);
+        // console.log(modifiedRecipe);
         return modifiedRecipe;
     }
     async populateAllRecipeFacts() {
@@ -1473,20 +1493,190 @@ let RecipeResolver = class RecipeResolver {
         }
         return 'done';
     }
-    // @Query((type) => String)
-    // async populateAllOriginalRecipeFacts() {
-    //   let versions = await RecipeVersionModel.find().select('_id');
-    //   for (let i = 0; i < versions.length; i++) {
-    //     //@ts-ignore
-    //     await updateOriginalVersionFacts(versions[i]._id);
-    //   }
-    //   return 'done';
-    // }
-    // @Mutation((type) => String)
-    // async removeAllVersionFacts() {
-    //   await RecipeFactModel.deleteMany({});
-    //   return 'done';
-    // }
+    async filterRecipeForAdmin(data, page, limit) {
+        if (!limit) {
+            limit = 12;
+        }
+        if (!page) {
+            page = 1;
+        }
+        if (
+        //@ts-ignore
+        data.blendTypes.length == 0 &&
+            //@ts-ignore
+            data.includeIngredientIds.length == 0 &&
+            //@ts-ignore
+            data.nutrientFilters.length == 0 &&
+            //@ts-ignore
+            data.nutrientMatrix.length == 0 &&
+            //@ts-ignore
+            data.excludeIngredientIds.length == 0 &&
+            //@ts-ignore
+            data.collectionsIds.length == 0) {
+            let recipes = await (0, getAllAdminRecipes_1.default)(limit, page, []);
+            return {
+                recipes: recipes,
+                totalRecipes: await recipeModel_1.default.countDocuments(),
+            };
+        }
+        let recipeData = [];
+        let find = {
+        // global: true,
+        // userId: null,
+        // addedByAdmin: true,
+        // discovery: true,
+        // isPublished: true,
+        };
+        //@ts-ignore
+        if (data.blendTypes.length > 0) {
+            find.recipeBlendCategory = { $in: data.blendTypes };
+        }
+        if (data.includeIngredientIds.length > 0) {
+            find['ingredients.ingredientId'] = { $in: data.includeIngredientIds };
+        }
+        if (data.collectionsIds.length > 0) {
+            find.collections = { $in: data.collectionsIds };
+        }
+        // console.log(find);
+        let findKeys = Object.keys(find);
+        // console.log('f', find);
+        if (findKeys.length > 0) {
+            recipeData = await recipeModel_1.default.find(find).select('_id');
+        }
+        else {
+            recipeData = [];
+        }
+        if (recipeData.length > 0 && data.excludeIngredientIds.length > 0) {
+            let recipeIds = recipeData.map((recipe) => recipe._id);
+            recipeData = await recipeModel_1.default.find({
+                _id: { $in: recipeIds },
+                'ingredients.ingredientId': { $nin: data.excludeIngredientIds },
+            }).select('_id');
+        }
+        let findfacts = {
+        // isDefault: true,
+        // global: true,
+        // userId: null,
+        // addedByAdmin: true,
+        // discovery: true,
+        // isPublished: true,
+        };
+        if (recipeData.length > 0) {
+            let recipeIds = recipeData.map((recipe) => recipe._id);
+            findfacts = {
+                _id: { $in: recipeIds },
+            };
+        }
+        else {
+            findfacts = {
+                _id: { $in: [] },
+            };
+        }
+        let userRecipes = await recipeModel_1.default.find(findfacts).select('defaultVersion');
+        let defaultVersions = userRecipes.map((ur) => ur.defaultVersion);
+        findfacts._id = { $in: defaultVersions };
+        for (let i = 0; i < data.nutrientMatrix.length; i++) {
+            let val = '';
+            if (data.nutrientMatrix[i].matrixName === 'netCarbs') {
+                val = 'gigl.netCarbs';
+                findfacts[val] = {};
+            }
+            else if (data.nutrientMatrix[i].matrixName === 'calorie') {
+                val = 'calorie.value';
+                findfacts[val] = {};
+            }
+            else if (data.nutrientMatrix[i].matrixName === 'totalGi') {
+                val = 'gigl.totalGi';
+                findfacts[val] = {};
+            }
+            else if (data.nutrientMatrix[i].matrixName === 'totalGl') {
+                val = 'gigl.totalGl';
+                findfacts[val] = {};
+            }
+            if (data.nutrientMatrix[i].lessThan) {
+                findfacts[val] = { $lt: data.nutrientMatrix[i].value };
+            }
+            else if (data.nutrientMatrix[i].greaterThan) {
+                findfacts[val] = { $gt: data.nutrientMatrix[i].value };
+            }
+            else if (data.nutrientMatrix[i].beetween) {
+                findfacts[val] = {
+                    $gt: data.nutrientMatrix[i].value1,
+                    $lt: data.nutrientMatrix[i].value2,
+                };
+            }
+        }
+        let energy = [];
+        let mineral = [];
+        let vitamin = [];
+        for (let i = 0; i < data.nutrientFilters.length; i++) {
+            let obj = {};
+            obj.blendNutrientRefference = new mongoose_1.default.mongo.ObjectId(data.nutrientFilters[i].nutrientId.toString());
+            if (data.nutrientFilters[i].lessThan) {
+                obj.value = { $lt: data.nutrientFilters[i].value };
+            }
+            else if (data.nutrientFilters[i].greaterThan) {
+                obj.value = { $gt: data.nutrientFilters[i].value };
+            }
+            else if (data.nutrientFilters[i].beetween) {
+                obj.value = {
+                    $gt: data.nutrientFilters[i].value1,
+                    $lt: data.nutrientFilters[i].value2,
+                };
+            }
+            if (data.nutrientFilters[i].category === 'energy') {
+                energy.push(obj);
+            }
+            else if (data.nutrientFilters[i].category === 'mineral') {
+                mineral.push(obj);
+            }
+            else if (data.nutrientFilters[i].category === 'vitamin') {
+                vitamin.push(obj);
+            }
+        }
+        let recipeFacts = [];
+        let recipeIds = [];
+        if (energy.length > 0) {
+            for (let i = 0; i < energy.length; i++) {
+                findfacts['energy'] = { $elemMatch: energy[i] };
+                recipeFacts = await RecipeVersionModel_1.default.find(findfacts).select('recipeId');
+                recipeIds = recipeFacts.map((recipe) => recipe.recipeId);
+                findfacts['recipeId'] = { $in: recipeIds };
+                delete findfacts['energy'];
+            }
+        }
+        if (mineral.length > 0) {
+            for (let i = 0; i < mineral.length; i++) {
+                findfacts['mineral'] = { $elemMatch: mineral[i] };
+                recipeFacts = await RecipeVersionModel_1.default.find(findfacts).select('recipeId');
+                recipeIds = recipeFacts.map((recipe) => recipe.recipeId);
+                findfacts['recipeId'] = { $in: recipeIds };
+                delete findfacts['mineral'];
+            }
+        }
+        if (vitamin.length > 0) {
+            for (let i = 0; i < vitamin.length; i++) {
+                findfacts['vitamin'] = { $elemMatch: vitamin[i] };
+                recipeFacts = await RecipeVersionModel_1.default.find(findfacts).select('recipeId');
+                recipeIds = recipeFacts.map((recipe) => recipe.recipeId);
+                findfacts['recipeId'] = { $in: recipeIds };
+                delete findfacts['vitamin'];
+            }
+        }
+        // console.log(findfacts);
+        if (recipeIds.length === 0) {
+            recipeFacts = await RecipeVersionModel_1.default.find(findfacts).select('recipeId');
+            recipeIds = recipeFacts.map((recipe) => recipe.recipeId);
+            // recipeIds = [];
+        }
+        let recipes = await (0, getAllAdminRecipes_1.default)(limit, page, recipeIds);
+        return {
+            recipes,
+            totalRecipes: await recipeModel_1.default.countDocuments({
+                _id: { $in: recipeIds },
+            }),
+        };
+    }
     async filterRecipe(data, userId, page, limit) {
         console.log(data.collectionsIds);
         if (
@@ -1714,6 +1904,7 @@ let RecipeResolver = class RecipeResolver {
             },
             select: 'postfixTitle selectedImage calorie gigl errorIngredients',
         })
+            .lean()
             .limit(limit)
             .skip(limit * (page - 1));
         let returnRecipe = await (0, getNotesCompareAndUserCollection_1.default)(userId, userProfileRecipes);
@@ -1828,21 +2019,110 @@ let RecipeResolver = class RecipeResolver {
         return true;
     }
     async juio() {
-        await Plan_1.default.deleteMany({});
-        await Planner_1.default.deleteMany({});
-        let userPR = await UserRecipeProfile_1.default.find();
-        await planCollection_1.default.updateMany({}, {
-            plans: [],
+        await recipeModel_1.default.updateMany({ adminId: null }, {
+            isPublished: false
         });
-        for (let i = 0; i < userPR.length; i++) {
-            let r = await recipeModel_1.default.findOne({ _id: userPR[i].recipeId });
-            if (!r) {
-                await UserRecipeProfile_1.default.deleteMany({
-                    recipeId: userPR[i].recipeId,
+        return true;
+    }
+    async resetApplication() {
+        let users = await memberModel_1.default.find();
+        for (let i = 0; i < users.length; i++) {
+            let defaultCollection = await userCollection_1.default.findOne({
+                userId: users[i]._id,
+                name: 'My Favorite',
+            }).select('_id');
+            if (!defaultCollection) {
+                continue;
+            }
+            let defaultPlanCollection = await planCollection_1.default.findOne({
+                userId: users[i]._id,
+                name: 'My Favorite',
+            }).select('_id');
+            if (!defaultPlanCollection) {
+                continue;
+            }
+            else {
+                await planCollection_1.default.findOneAndUpdate({
+                    _id: defaultPlanCollection._id,
+                }, {
+                    isDefault: true,
+                });
+                await planCollection_1.default.findOneAndUpdate({
+                    $ne: {
+                        _id: defaultPlanCollection._id,
+                    },
+                }, {
+                    isDefault: false,
                 });
             }
+            await memberModel_1.default.updateOne({ _id: users[i]._id }, {
+                $set: {
+                    defaultCollection: defaultCollection._id,
+                    lastModifiedBlogCollection: defaultCollection._id,
+                    compareList: [],
+                    compareLength: 0,
+                    defaultChallengeId: null,
+                    lastModifiedPlanCollection: defaultPlanCollection._id,
+                },
+            });
         }
-        return true;
+        await userCollection_1.default.updateMany({}, {
+            recipes: [],
+            shareTo: [],
+        });
+        await planCollection_1.default.updateMany({}, {
+            plans: [],
+            collectionCount: 0,
+        });
+        await challenge_1.default.deleteMany();
+        await ChallengePost_1.default.deleteMany();
+        await Compare_1.default.deleteMany();
+        await InviteForChallenge_1.default.deleteMany();
+        await planComment_1.default.deleteMany();
+        await Planner_1.default.deleteMany();
+        await PlanRating_1.default.deleteMany();
+        await Plan_1.default.deleteMany();
+        await planShare_1.default.deleteMany();
+        await collectionShare_1.default.deleteMany();
+        await shareChallengeGlobal_1.default.deleteMany();
+        await share_1.default.deleteMany();
+        await comment_1.default.deleteMany();
+        await adminCollection_1.default.updateMany({}, {
+            children: [],
+        });
+        await planComment_1.default.deleteMany();
+        await userNote_1.default.deleteMany();
+        let recipes = await recipeModel_1.default.find({
+            adminId: null,
+            addedByAdmin: true,
+        });
+        for (let i = 0; i < recipes.length; i++) {
+            await RecipeVersionModel_1.default.deleteMany({ recipeId: recipes[i]._id });
+            await UserRecipeProfile_1.default.deleteMany({
+                recipeId: recipes[i]._id,
+            });
+        }
+        await recipeModel_1.default.deleteMany({
+            adminId: null,
+            addedByAdmin: true,
+        });
+        let userRecipes = await recipeModel_1.default.find({
+            userId: {
+                $ne: null,
+            },
+        });
+        for (let i = 0; i < userRecipes.length; i++) {
+            await RecipeVersionModel_1.default.deleteMany({ recipeId: userRecipes[i]._id });
+            await UserRecipeProfile_1.default.deleteMany({
+                recipeId: userRecipes[i]._id,
+            });
+        }
+        await recipeModel_1.default.deleteMany({
+            userId: {
+                $ne: null,
+            },
+        });
+        return 'done';
     }
 };
 __decorate([
@@ -2012,14 +2292,6 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], RecipeResolver.prototype, "deleteARecipe", null);
 __decorate([
-    (0, type_graphql_1.Mutation)((type) => String) //:NOT USABLE
-    ,
-    __param(0, (0, type_graphql_1.Arg)('data')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [CreateRecipe_1.default]),
-    __metadata("design:returntype", Promise)
-], RecipeResolver.prototype, "addRecipeFromAdmin", null);
-__decorate([
     (0, type_graphql_1.Mutation)((type) => ProfileRecipeDesc_1.default)
     /**
      * Adds a recipe from a user.
@@ -2097,6 +2369,16 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], RecipeResolver.prototype, "populateAllRecipeFacts", null);
 __decorate([
+    (0, type_graphql_1.Query)((type) => MainRecipesWithPagination_1.default) // done
+    ,
+    __param(0, (0, type_graphql_1.Arg)('data')),
+    __param(1, (0, type_graphql_1.Arg)('page', { nullable: true })),
+    __param(2, (0, type_graphql_1.Arg)('limit', { nullable: true })),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [filterRecipe_1.default, Number, Number]),
+    __metadata("design:returntype", Promise)
+], RecipeResolver.prototype, "filterRecipeForAdmin", null);
+__decorate([
     (0, type_graphql_1.Query)((type) => RecipesWithPagination_1.default) // not sure yet
     ,
     __param(0, (0, type_graphql_1.Arg)('data')),
@@ -2120,6 +2402,12 @@ __decorate([
     __metadata("design:paramtypes", []),
     __metadata("design:returntype", Promise)
 ], RecipeResolver.prototype, "juio", null);
+__decorate([
+    (0, type_graphql_1.Mutation)(() => String),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", []),
+    __metadata("design:returntype", Promise)
+], RecipeResolver.prototype, "resetApplication", null);
 RecipeResolver = __decorate([
     (0, type_graphql_1.Resolver)()
 ], RecipeResolver);

@@ -68,7 +68,7 @@ async function default_1(recipeId, userId, token) {
                 ],
             },
         ],
-        select: 'mainEntityOfPage name image datePublished recipeBlendCategory brand foodCategories url favicon numberOfRating totalViews averageRating description userId userId',
+        select: 'mainEntityOfPage name image datePublished recipeBlendCategory brand foodCategories url favicon numberOfRating totalViews averageRating description userId userId totalTime',
     })
         .populate({
         path: 'defaultVersion',
@@ -95,7 +95,8 @@ async function default_1(recipeId, userId, token) {
         path: 'turnedOffVersions',
         model: 'RecipeVersion',
         select: '_id postfixTitle description createdAt updatedAt isDefault isOriginal',
-    });
+    })
+        .lean();
     let collectionRecipes = [];
     let memberCollections = await memberModel_1.default.find({ _id: userId })
         .populate({
@@ -151,7 +152,7 @@ async function default_1(recipeId, userId, token) {
     });
     return {
         //@ts-ignore
-        ...userProfileRecipe._doc,
+        ...userProfileRecipe,
         notes: userNotes.length,
         addedToCompare: addedToCompare,
         userCollections: collectionData,

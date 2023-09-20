@@ -10,33 +10,21 @@ var __metadata = (this && this.__metadata) || function (k, v) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const type_graphql_1 = require("type-graphql");
-let CreateIngredientData = class CreateIngredientData {
+let DateDocPostId = class DateDocPostId {
 };
+__decorate([
+    (0, type_graphql_1.Field)(),
+    __metadata("design:type", String)
+], DateDocPostId.prototype, "date", void 0);
 __decorate([
     (0, type_graphql_1.Field)((type) => type_graphql_1.ID),
     __metadata("design:type", String)
-], CreateIngredientData.prototype, "ingredientId", void 0);
+], DateDocPostId.prototype, "docId", void 0);
 __decorate([
-    (0, type_graphql_1.Field)(),
+    (0, type_graphql_1.Field)((type) => type_graphql_1.ID),
     __metadata("design:type", String)
-], CreateIngredientData.prototype, "originalIngredientName", void 0);
-__decorate([
-    (0, type_graphql_1.Field)(),
-    __metadata("design:type", String)
-], CreateIngredientData.prototype, "quantityString", void 0);
-__decorate([
-    (0, type_graphql_1.Field)(),
-    __metadata("design:type", String)
-], CreateIngredientData.prototype, "selectedPortionName", void 0);
-__decorate([
-    (0, type_graphql_1.Field)(),
-    __metadata("design:type", Number)
-], CreateIngredientData.prototype, "weightInGram", void 0);
-__decorate([
-    (0, type_graphql_1.Field)({ nullable: true }),
-    __metadata("design:type", String)
-], CreateIngredientData.prototype, "comment", void 0);
-CreateIngredientData = __decorate([
+], DateDocPostId.prototype, "postId", void 0);
+DateDocPostId = __decorate([
     (0, type_graphql_1.InputType)()
-], CreateIngredientData);
-exports.default = CreateIngredientData;
+], DateDocPostId);
+exports.default = DateDocPostId;

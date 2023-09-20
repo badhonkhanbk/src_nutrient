@@ -38,6 +38,9 @@ let PlanCommentsResolver = class PlanCommentsResolver {
         return {
             //@ts-ignore
             ...newComment._doc,
+            commentsCount: await planComment_1.default.countDocuments({
+                planId: data.planId,
+            }),
             memberId: user,
         };
     }
@@ -102,7 +105,9 @@ let PlanCommentsResolver = class PlanCommentsResolver {
             return new AppError_1.default('You are not the owner of this comment', 400);
         }
         await planComment_1.default.findOneAndDelete({ _id: commentId });
-        return 'success';
+        return await planComment_1.default.countDocuments({
+            planId: blogComment.planId,
+        });
     }
 };
 __decorate([
@@ -148,7 +153,7 @@ __decorate([
     __metadata("design:returntype", Promise)
 ], PlanCommentsResolver.prototype, "getAllCommentsForAPlan", null);
 __decorate([
-    (0, type_graphql_1.Mutation)(() => String)
+    (0, type_graphql_1.Mutation)(() => Number)
     /**
      * Removes a plan comment.
      *

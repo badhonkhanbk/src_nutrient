@@ -67,16 +67,19 @@ let ChallengeResolver = class ChallengeResolver {
         let userChallenges = await challenge_1.default.find({
             memberId: data.memberId,
         });
+        let modifiedData = data;
         if (userChallenges.length === 0) {
-            let modifiedData = data;
             modifiedData.isActive = true;
+            modifiedData.hasCreatedByMe = true;
             modifiedData.canInviteWithOthers = true;
             let userChallenge = await challenge_1.default.create(modifiedData);
-            return userChallenge._id;
+            return userChallenge;
         }
-        let modifiedData = data;
         modifiedData.startDate = isoStartDate;
         modifiedData.endDate = isoEndDate;
+        modifiedData.isActive = false;
+        modifiedData.hasCreatedByMe = true;
+        modifiedData.canInviteWithOthers = true;
         let userChallenge = await challenge_1.default.create(modifiedData);
         userChallenge.canInviteWithOthers = true;
         return userChallenge;

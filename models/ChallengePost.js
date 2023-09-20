@@ -4,7 +4,7 @@ const mongoose_1 = require("mongoose");
 const ChallengePostSchema = new mongoose_1.Schema({
     memberId: {
         type: mongoose_1.SchemaTypes.ObjectId,
-        ref: 'Member',
+        ref: 'User',
         required: [true, 'Member ID is required'],
     },
     assignDate: { type: Date, required: true },
@@ -55,6 +55,8 @@ const ChallengePostSchema = new mongoose_1.Schema({
             ingredients: [
                 {
                     ingredientId: { type: mongoose_1.Schema.Types.ObjectId, ref: 'BlendIngredient' },
+                    originalIngredientName: { type: String, default: '' },
+                    quantityString: { type: String, default: '' },
                     selectedPortion: { name: String, quantity: Number, gram: Number },
                     weightInGram: Number,
                     portions: [
@@ -65,5 +67,6 @@ const ChallengePostSchema = new mongoose_1.Schema({
         },
     ],
 });
+ChallengePostSchema.index({ memberId: 1, assignDate: 1 }, { unique: true });
 const ChallengePost = (0, mongoose_1.model)('challengePost', ChallengePostSchema);
 exports.default = ChallengePost;
